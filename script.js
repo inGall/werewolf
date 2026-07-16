@@ -1,4 +1,4 @@
-const allRoles = ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '平民'];
+const allRoles = ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '黑市商人', '狼兄', '狼弟', '平民'];
 
 const roleEmojis = {
   '预言家': '🔮',
@@ -7,12 +7,16 @@ const roleEmojis = {
   '骑士': '♞',
   '狼王': '👑',
   '狼人': '🐺',
+  '黑市商人': '🏪',
+  '狼兄': '🐺👨',
+  '狼弟': '🐺👦',
   '平民': '👤',
 };
 
 const roleCategories = {
   god: ['预言家', '女巫', '猎人', '骑士'],
-  wolf: ['狼王', '狼人'],
+  wolf: ['狼王', '狼人', '狼兄', '狼弟'],
+  trader: ['黑市商人'],
   civilian: ['平民'],
 };
 
@@ -31,6 +35,11 @@ const roleDetails = {
     title: '混乱夜晚',
     note: 'A playful setup that makes every round feel unpredictable.',
     defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '狼人', '平民'],
+  },
+  wolf_brothers: {
+    title: '狼兄狼弟 + 预言家 + 女巫 + 猎人 + 黑市商人',
+    note: 'Wolf Brothers can strategize together. Black Market Trader brings unpredictability to the game.',
+    defaultRoles: ['预言家', '女巫', '猎人', '黑市商人', '狼兄', '狼弟', '平民', '平民'],
   },
 };
 
@@ -72,15 +81,17 @@ function updateRolePreview() {
     roleCounts[role] = (roleCounts[role] || 0) + 1;
   });
 
-  // Create 3-column layout: god, wolf, civilian
+  // Create 4-column layout: god, wolf, trader, civilian
   const columns = {
     god: document.createElement('div'),
     wolf: document.createElement('div'),
+    trader: document.createElement('div'),
     civilian: document.createElement('div'),
   };
 
   columns.god.className = 'role-column god-column';
   columns.wolf.className = 'role-column wolf-column';
+  columns.trader.className = 'role-column trader-column';
   columns.civilian.className = 'role-column civilian-column';
 
   // Add title to each column
@@ -93,6 +104,11 @@ function updateRolePreview() {
   wolfTitle.className = 'column-title';
   wolfTitle.textContent = 'Wolf';
   columns.wolf.appendChild(wolfTitle);
+
+  const traderTitle = document.createElement('div');
+  traderTitle.className = 'column-title';
+  traderTitle.textContent = 'Trader';
+  columns.trader.appendChild(traderTitle);
 
   const civilianTitle = document.createElement('div');
   civilianTitle.className = 'column-title';
@@ -109,6 +125,8 @@ function updateRolePreview() {
       columns.god.appendChild(chip);
     } else if (roleCategories.wolf.includes(role)) {
       columns.wolf.appendChild(chip);
+    } else if (roleCategories.trader.includes(role)) {
+      columns.trader.appendChild(chip);
     } else if (roleCategories.civilian.includes(role)) {
       columns.civilian.appendChild(chip);
     }
@@ -116,6 +134,7 @@ function updateRolePreview() {
 
   rolePreviewList.appendChild(columns.god);
   rolePreviewList.appendChild(columns.wolf);
+  rolePreviewList.appendChild(columns.trader);
   rolePreviewList.appendChild(columns.civilian);
 }
 
@@ -140,7 +159,7 @@ function renderPlayerSetup() {
   playersList.innerHTML = '';
 
   // Roles that can only be selected once
-  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王']);
+  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王', '狼兄', '狼弟', '黑市商人']);
 
   defaultRoles.forEach((role, index) => {
     const card = document.createElement('div');
@@ -217,7 +236,7 @@ function renderPlayerSetup() {
 }
 
 function updateAllDropdowns() {
-  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王']);
+  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王', '狼兄', '狼弟', '黑市商人']);
   const selects = document.querySelectorAll('.player-role-select');
   
   selects.forEach(select => {
@@ -359,6 +378,33 @@ function renderActionPhase() {
   wolfTargetSelect.addEventListener('change', (e) => {
     wolfKillTarget = e.target.value ? Number(e.target.value) : null;
   });
+
+  // Set up Wolf Brothers select if in game
+  const wolfBrothersTargetSelect = document.getElementById('wolfBrothersTargetSelect');
+  if (wolfBrothersTargetSelect) {
+    wolfBrothersTargetSelect.innerHTML = '<option value="">Select a player...</option>';
+    for (let i = 1; i <= playerCount; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.text = `Player ${i}`;
+      wolfBrothersTargetSelect.appendChild(opt);
+    }
+    wolfBrothersTargetSelect.addEventListener('change', (e) => {
+      wolfKillTarget = e.target.value ? Number(e.target.value) : null;
+    });
+  }
+
+  // Set up Black Market Trader select if in game
+  const traderTargetSelect = document.getElementById('traderTargetSelect');
+  if (traderTargetSelect) {
+    traderTargetSelect.innerHTML = '<option value="">Select a player...</option>';
+    for (let i = 1; i <= playerCount; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.text = `Player ${i}`;
+      traderTargetSelect.appendChild(opt);
+    }
+  }
 }
 
 function showWitchPhase() {
@@ -381,6 +427,49 @@ if (confirmWolfActionButton) {
   });
 }
 
+// Wolf Brothers action handler
+const confirmWolfBrothersActionButton = document.getElementById('confirmWolfBrothersActionButton');
+if (confirmWolfBrothersActionButton) {
+  confirmWolfBrothersActionButton.addEventListener('click', () => {
+    const wolfBrothersTargetSelect = document.getElementById('wolfBrothersTargetSelect');
+    if (!wolfBrothersTargetSelect.value) {
+      alert('Please select a player to eliminate.');
+      return;
+    }
+    wolfKillTarget = Number(wolfBrothersTargetSelect.value);
+    console.log(`Wolf Brothers eliminate Player ${wolfKillTarget}`);
+    alert(`Wolf Brothers decision recorded: Player ${wolfKillTarget} will be eliminated.`);
+    showWitchPhase();
+  });
+}
+
+// Black Market Trader action handler
+const confirmTraderActionButton = document.getElementById('confirmTraderActionButton');
+let traderDiscoveredRole = null;
+if (confirmTraderActionButton) {
+  confirmTraderActionButton.addEventListener('click', () => {
+    const traderTargetSelect = document.getElementById('traderTargetSelect');
+    if (!traderTargetSelect.value) {
+      alert('Please select a player to learn about.');
+      return;
+    }
+    const targetNum = Number(traderTargetSelect.value);
+    traderDiscoveredRole = playerRoleSelections[targetNum - 1];
+    console.log(`Black Market Trader discovers Player ${targetNum} is: ${traderDiscoveredRole}`);
+    alert(`Trading complete! Player ${targetNum}'s role: ${roleEmojis[traderDiscoveredRole]} ${traderDiscoveredRole}`);
+    showTraderCloseEyes();
+  });
+}
+
+function showTraderCloseEyes() {
+  setTimeout(() => {
+    showSection('traderCloseEyesMessage', ['traderActionSection']);
+  }, 500);
+  setTimeout(() => {
+    showSection('knightActionSection', ['traderCloseEyesMessage']);
+  }, 2000);
+}
+
 function proceedToActionPhase() {
   renderActionPhase();
   setActiveStep(3);
@@ -397,18 +486,38 @@ playerCountInput.addEventListener('change', () => {
 function resetNightPhaseUI() {
   const actionPhaseSections = document.getElementById('actionPhaseSections');
   if (actionPhaseSections) actionPhaseSections.style.display = 'none';
-  ['wolfCloseEyesMessage','witchActionSection','witchCloseEyesMessage',
+  ['wolfCloseEyesMessage','wolfActionSection','wolfBrothersActionSection','wolfBrothersCloseEyesMessage',
+   'witchActionSection','witchCloseEyesMessage','traderActionSection','traderCloseEyesMessage',
    'seerActionSection','seerCloseEyesMessage','hunterActionSection',
    'hunterCloseEyesMessage','knightActionSection','wakeUpSection'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  const wolfAction = document.getElementById('wolfActionSection');
-  if (wolfAction) wolfAction.style.display = 'block';
-  // Clear wolf select
+  
+  // Determine which wolf team setup to show
+  const hasWolfBrothers = playerRoleSelections.includes('狼兄') || playerRoleSelections.includes('狼弟');
+  const hasTrader = playerRoleSelections.includes('黑市商人');
+  
+  let firstNightAction = 'wolfActionSection';
+  if (hasWolfBrothers) {
+    firstNightAction = 'wolfBrothersActionSection';
+  }
+  
+  const action = document.getElementById(firstNightAction);
+  if (action) action.style.display = 'block';
+  
+  // Clear wolf/trader select
   const wolfSelect = document.getElementById('wolfTargetSelect');
+  const wolfBrothersSelect = document.getElementById('wolfBrothersTargetSelect');
+  const traderSelect = document.getElementById('traderTargetSelect');
+  
   if (wolfSelect) wolfSelect.value = '';
+  if (wolfBrothersSelect) wolfBrothersSelect.value = '';
+  if (traderSelect) traderSelect.value = '';
+  
   wolfKillTarget = null;
+  traderDiscoveredRole = null;
+  
   // Clear witch radio
   document.querySelectorAll('input[name="witchPotion"]').forEach(r => r.checked = false);
   const poisonContainer = document.getElementById('witchPoisonSelectContainer');
@@ -538,7 +647,13 @@ if (confirmHunterActionButton) {
   confirmHunterActionButton.addEventListener('click', () => {
     showSection('hunterCloseEyesMessage', ['hunterActionSection']);
     setTimeout(() => {
-      showSection('knightActionSection', ['hunterCloseEyesMessage']);
+      // Check if Black Market Trader is in the game
+      const hasTrader = playerRoleSelections.includes('黑市商人');
+      if (hasTrader) {
+        showSection('traderActionSection', ['hunterCloseEyesMessage']);
+      } else {
+        showSection('knightActionSection', ['hunterCloseEyesMessage']);
+      }
     }, 1500);
   });
 }
