@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Werewolf Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero-card">
+        <div>
+          <p class="eyebrow">Werewolf host toolkit</p>
+          <h1>Choose the roles for your next game</h1>
+          <p class="hero-copy">
+            Start by picking a role setup, then move into player assignment and
+            game flow.
+          </p>
+        </div>
+        <div class="hero-badge">Live session planner</div>
+      </header>
+
+      <main class="panel">
+        <div class="step-indicator" aria-label="Progress">
+          <span class="step-pill active" id="stepOnePill">1. Choose roles</span>
+          <span class="step-pill" id="stepTwoPill">2. Setup players</span>
+        </div>
+
+        <section class="step active" id="roleSelectionStep">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Role selection</p>
+              <h2>Pick your game mode</h2>
+            </div>
+            <button id="resetButton" class="ghost-button">Reset</button>
+          </div>
+
+          <section class="role-grid" id="roleGrid">
+            <article class="role-card selected" data-role="basic">
+              <div class="role-badge">Basic</div>
+              <h3>预言家 + 女巫 + 猎人 + 骑士 + 狼王</h3>
+              <p>
+                A balanced classic setup featuring the Seer, Witch, Hunter,
+                Knight, and Wolf King.
+              </p>
+              <div class="role-tags">
+                <span>Recommended</span>
+                <span>Classic</span>
+              </div>
+            </article>
+
+            <article class="role-card" data-role="advanced">
+              <div class="role-badge">Advanced</div>
+              <h3>预言家 + 女巫 + 猎人 + 骑士 + 狼王 + 狼人</h3>
+              <p>
+                Adds extra information and tactical depth for larger groups and
+                longer rounds.
+              </p>
+              <div class="role-tags">
+                <span>Deep strategy</span>
+                <span>Medium size</span>
+              </div>
+            </article>
+
+            <article class="role-card" data-role="chaos">
+              <div class="role-badge">Chaos</div>
+              <h3>混乱夜晚</h3>
+              <p>
+                A fast, unpredictable setup that keeps everyone on edge from the
+                first whisper.
+              </p>
+              <div class="role-tags">
+                <span>High energy</span>
+                <span>Party mode</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="summary-card">
+            <div class="summary-header">
+              <div>
+                <p class="eyebrow">Current setup</p>
+                <h3>Selected roles</h3>
+              </div>
+              <button id="continueButton" class="primary-button">
+                Continue to player setup
+              </button>
+            </div>
+
+            <ul id="selectedRolesList" class="selected-list"></ul>
+            <p id="statusMessage" class="status-message">
+              The basic setup is ready. You can keep it or swap to another mode.
+            </p>
+          </section>
+        </section>
+
+        <section class="step" id="playerSetupStep">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Player setup</p>
+              <h2>Assign players and roles</h2>
+            </div>
+            <div class="step-actions">
+              <button id="backButton" class="ghost-button">Back</button>
+              <button id="generateRosterButton" class="primary-button">
+                Generate roster
+              </button>
+            </div>
+          </div>
+
+          <div class="setup-toolbar">
+            <label class="field">
+              <span>Player count</span>
+              <input id="playerCount" type="number" min="5" max="20" value="8" />
+            </label>
+            <div class="setup-summary">
+              <p id="selectedSetupLabel">Current setup: 预言家 + 女巫 + 猎人 + 骑士 + 狼王</p>
+              <p id="rolePoolLabel">Role pool ready for 8 players</p>
+            </div>
+          </div>
+
+          <div class="players-section">
+            <div id="playersList" class="players-grid"></div>
+          </div>
+
+          <div class="assignment-summary">
+            <h3>Role assignment preview</h3>
+            <div id="rolePreviewList" class="role-preview-list"></div>
+            <button id="proceedToActionPhaseButton" class="primary-button" style="margin-top: 16px;">Start night actions</button>
+          </div>
+
+          <!-- Night Action Phase -->
+          <div id="actionPhaseSections" style="display: none; margin-top: 32px;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+              <button id="resetGameButton" class="ghost-button" style="color: #f87171; border-color: #f87171;">🔄 Reset game</button>
+            </div>
+            <!-- Wolf Team Action -->
+            <div id="wolfActionSection" class="action-card">
+              <div class="action-prompt">
+                <h3>🐺 Wolf team, who do you want to eliminate?</h3>
+                <p>Choose the player number you wish to target.</p>
+              </div>
+              <div class="action-controls">
+                <select id="wolfTargetSelect" class="action-select">
+                  <option value="">Select a player...</option>
+                </select>
+                <button id="confirmWolfActionButton" class="primary-button">Confirm kill</button>
+              </div>
+            </div>
+
+            <!-- Wolf Close Eyes Message -->
+            <div id="wolfCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🐺 Wolf team, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Witch Action -->
+            <div id="witchActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🧙🏻‍♀️ Witch, open your eyes</h3>
+                <p>Choose a potion to use (you can only use one per round).</p>
+              </div>
+              <div class="action-controls">
+                <div class="potion-option">
+                  <label>
+                    <input type="radio" id="witchSaveBtn" name="witchPotion" value="save" />
+                    <span>💚 Save (counter the kill)</span>
+                  </label>
+                </div>
+                <div class="potion-option">
+                  <label>
+                    <input type="radio" id="witchPoisonBtn" name="witchPotion" value="poison" />
+                    <span>☠️ Poison (choose a player to eliminate)</span>
+                  </label>
+                </div>
+                <div id="witchPoisonSelectContainer" style="display: none; margin-top: 12px;">
+                  <label>
+                    <span>Player to poison:</span>
+                    <select id="witchPoisonSelect" class="action-select">
+                      <option value="">Select a player...</option>
+                    </select>
+                  </label>
+                </div>
+                <button id="confirmWitchActionButton" class="primary-button" style="margin-top: 12px;">Confirm</button>
+              </div>
+            </div>
+
+            <!-- Witch Close Eyes Message -->
+            <div id="witchCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🧙🏻‍♀️ Witch, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Seer Action -->
+            <div id="seerActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🔮 预言家, open your eyes</h3>
+                <p>Choose a player to investigate. The narrator will show you 👍 (villager) or 👎 (wolf).</p>
+              </div>
+              <div class="action-controls">
+                <select id="seerTargetSelect" class="action-select">
+                  <option value="">Select a player...</option>
+                </select>
+                <button id="confirmSeerActionButton" class="primary-button">Confirm</button>
+              </div>
+            </div>
+
+            <!-- Seer Close Eyes Message -->
+            <div id="seerCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🔮 预言家, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Hunter Action -->
+            <div id="hunterActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🔫 猎人, open your eyes</h3>
+                <p>猎人, no action is required this round.</p>
+              </div>
+              <div class="action-controls">
+                <button id="confirmHunterActionButton" class="primary-button">Confirm</button>
+              </div>
+            </div>
+
+            <!-- Hunter Close Eyes Message -->
+            <div id="hunterCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🔫 猎人, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Knight Action -->
+            <div id="knightActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>♞ 骑士, open your eyes</h3>
+                <p>骑士, no action is required this round.</p>
+              </div>
+              <div class="action-controls">
+                <button id="confirmKnightActionButton" class="primary-button">Confirm</button>
+              </div>
+            </div>
+
+            <!-- Wake Up + Role Check -->
+            <div id="wakeUpSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>☀️ Day breaks — everyone, open your eyes</h3>
+                <p id="wakeUpRoleWarning" style="color:#f87171; display:none;">⚠️ Not all players have roles assigned. Please assign roles to everyone before proceeding.</p>
+              </div>
+              <div class="action-controls">
+                <button id="proceedToDayButton" class="primary-button">Proceed to day phase</button>
+              </div>
+            </div>
+
+            <!-- Sheriff Election Question -->
+            <div id="sheriffQuestionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🏅 Sheriff election</h3>
+                <p>Does anyone want to run for sheriff this round?</p>
+              </div>
+              <div class="action-controls">
+                <button id="sheriffYesButton" class="primary-button">Yes — run election</button>
+                <button id="sheriffNoButton" class="ghost-button">No — skip</button>
+              </div>
+            </div>
+
+            <!-- Sheriff Nomination -->
+            <div id="sheriffNominationSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🏅 Select sheriff nominees</h3>
+                <p>Click all players who are running for sheriff, then confirm.</p>
+              </div>
+              <div id="sheriffNomineeGrid" class="nominee-grid"></div>
+              <div class="action-controls" style="margin-top:16px;">
+                <button id="confirmSheriffNomineesButton" class="primary-button">Confirm nominees</button>
+              </div>
+            </div>
+
+            <!-- Sheriff Speech Order Result -->
+            <div id="sheriffResultSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🏅 Sheriff speech order</h3>
+                <p id="sheriffResultText"></p>
+              </div>
+              <div class="action-controls">
+                <button id="sheriffPhaseOverButton" class="primary-button">Sheriff phase over</button>
+              </div>
+            </div>
+
+            <!-- Night Results Announcement -->
+            <div id="nightResultSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>📣 Last night's results</h3>
+                <div id="nightResultText"></div>
+              </div>
+              <div class="action-controls">
+                <button id="startDayPhaseButton" class="primary-button">Proceed to day discussion</button>
+              </div>
+            </div>
+
+            <!-- Day Discussion -->
+            <div id="dayDiscussionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🌅 Day phase — open discussion</h3>
+                <p>Players discuss and vote. When ready, proceed to voting.</p>
+              </div>
+              <div class="action-controls">
+                <button id="startVoteButton" class="primary-button">Proceed to vote</button>
+              </div>
+            </div>
+
+            <!-- Day Vote -->
+            <div id="dayVoteSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🗳️ Vote to eliminate</h3>
+                <p>Select the player to be voted out.</p>
+              </div>
+              <div id="votePlayerGrid" class="nominee-grid"></div>
+              <div class="action-controls" style="margin-top:16px;">
+                <button id="confirmVoteButton" class="primary-button">Confirm vote</button>
+                <button id="skipVoteButton" class="ghost-button">No vote this round</button>
+              </div>
+            </div>
+
+            <!-- Special Ability: Hunter/Wolf King shoot -->
+            <div id="shootSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3 id="shootTitle">🔫 Last shot</h3>
+                <p id="shootDesc"></p>
+              </div>
+              <div id="shootPlayerGrid" class="nominee-grid"></div>
+              <div class="action-controls" style="margin-top:16px;">
+                <button id="confirmShootButton" class="primary-button">Confirm shot</button>
+                <button id="skipShootButton" class="ghost-button">Skip</button>
+              </div>
+            </div>
+
+            <!-- Win Condition -->
+            <div id="winSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3 id="winTitle"></h3>
+                <p id="winDesc"></p>
+              </div>
+              <div class="action-controls">
+                <button id="newGameButton" class="primary-button">New game</button>
+              </div>
+            </div>
+          </div>
+        </section>      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
