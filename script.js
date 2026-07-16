@@ -139,6 +139,9 @@ function renderPlayerSetup() {
 
   playersList.innerHTML = '';
 
+  // Roles that can only be selected once
+  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王']);
+
   defaultRoles.forEach((role, index) => {
     const card = document.createElement('div');
     card.className = 'player-card';
@@ -162,7 +165,16 @@ function renderPlayerSetup() {
     emptyOpt.selected = true;
     select.appendChild(emptyOpt);
     
+    // Filter roles to prevent duplicates of unique roles
     allRoles.forEach(r => {
+      // Check if this role is already selected by another player
+      const isAlreadySelected = playerRoleSelections.some((selectedRole, idx) => selectedRole === r && idx !== index);
+      
+      // Skip this role if it's a unique role that's already been selected
+      if (uniqueRoles.has(r) && isAlreadySelected) {
+        return; // Skip adding this option
+      }
+      
       const opt = document.createElement('option');
       opt.value = r;
       opt.text = `${roleEmojis[r]} ${r}`;
@@ -173,6 +185,7 @@ function renderPlayerSetup() {
       const playerIdx = Number(e.target.getAttribute('data-player-index'));
       playerRoleSelections[playerIdx] = e.target.value;
       updateRolePreview();
+      updateAllDropdowns(); // Refresh all dropdowns to hide/show unavailable roles
       // Re-enable proceed button if all roles now filled
       const allFilled = playerRoleSelections.every(r => r);
       const proceedBtn = document.getElementById('proceedToDayButton');
@@ -201,6 +214,43 @@ function renderPlayerSetup() {
   });
 
   updateRolePreview();
+}
+
+function updateAllDropdowns() {
+  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王']);
+  const selects = document.querySelectorAll('.player-role-select');
+  
+  selects.forEach(select => {
+    const playerIdx = Number(select.getAttribute('data-player-index'));
+    const currentValue = select.value;
+    
+    // Store current selection
+    const options = select.querySelectorAll('option');
+    
+    // Remove all options except the empty one
+    options.forEach((opt, i) => {
+      if (i > 0) opt.remove(); // Keep the empty "Select a role..." option
+    });
+    
+    // Add options based on current selections
+    allRoles.forEach(r => {
+      // Check if this role is already selected by another player
+      const isAlreadySelected = playerRoleSelections.some((selectedRole, idx) => selectedRole === r && idx !== playerIdx);
+      
+      // Skip this role if it's a unique role that's already been selected
+      if (uniqueRoles.has(r) && isAlreadySelected) {
+        return;
+      }
+      
+      const opt = document.createElement('option');
+      opt.value = r;
+      opt.text = `${roleEmojis[r]} ${r}`;
+      select.appendChild(opt);
+    });
+    
+    // Restore current selection if still available
+    select.value = currentValue;
+  });
 }
 
 function renderSelection() {
