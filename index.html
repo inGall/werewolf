@@ -80,6 +80,19 @@
                 <span>Party mode</span>
               </div>
             </article>
+
+            <article class="role-card" data-role="wolf_brothers">
+              <div class="role-badge">Wolf Brothers</div>
+              <h3>狼兄狼弟 + 预言家 + 女巫 + 猎人 + 黑市商人</h3>
+              <p>
+                Wolf Brothers strategize together. The Black Market Trader brings
+                an element of unpredictability with their unique abilities.
+              </p>
+              <div class="role-tags">
+                <span>Team wolf</span>
+                <span>Advanced</span>
+              </div>
+            </article>
           </section>
 
           <section class="summary-card">
@@ -235,6 +248,48 @@
             <div id="hunterCloseEyesMessage" class="action-card" style="display: none;">
               <div class="action-prompt">
                 <h3>🔫 猎人, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Wolf Brothers Team Action -->
+            <div id="wolfBrothersActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🐺🐺 Wolf Brothers, open your eyes</h3>
+                <p>You are brothers working together. Choose which player to eliminate.</p>
+              </div>
+              <div class="action-controls">
+                <select id="wolfBrothersTargetSelect" class="action-select">
+                  <option value="">Select a player...</option>
+                </select>
+                <button id="confirmWolfBrothersActionButton" class="primary-button">Confirm kill</button>
+              </div>
+            </div>
+
+            <!-- Wolf Brothers Close Eyes Message -->
+            <div id="wolfBrothersCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🐺🐺 Wolf Brothers, please close your eyes</h3>
+              </div>
+            </div>
+
+            <!-- Black Market Trader Action -->
+            <div id="traderActionSection" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🏪 黑市商人, open your eyes</h3>
+                <p>Choose a player to trade information with. You will learn their role.</p>
+              </div>
+              <div class="action-controls">
+                <select id="traderTargetSelect" class="action-select">
+                  <option value="">Select a player...</option>
+                </select>
+                <button id="confirmTraderActionButton" class="primary-button">Confirm trade</button>
+              </div>
+            </div>
+
+            <!-- Black Market Trader Close Eyes Message -->
+            <div id="traderCloseEyesMessage" class="action-card" style="display: none;">
+              <div class="action-prompt">
+                <h3>🏪 黑市商人, please close your eyes</h3>
               </div>
             </div>
 
