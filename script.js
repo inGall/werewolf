@@ -1,4 +1,5 @@
-const allRoles = ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '黑市商人', '狼兄', '狼弟', '平民'];
+const allRoles = ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '黑市商人', '狼兄', '狼弟', '平民',
+  '狼人1','狼人2','狼人3','平民1','平民2','平民3','平民4'];
 
 const roleEmojis = {
   '预言家': '🔮',
@@ -11,20 +12,35 @@ const roleEmojis = {
   '狼兄': '🐺👨',
   '狼弟': '🐺👦',
   '平民': '👤',
+  '狼人1': '🐺',
+  '狼人2': '🐺',
+  '狼人3': '🐺',
+  '平民1': '👤',
+  '平民2': '👤',
+  '平民3': '👤',
+  '平民4': '👤',
 };
+
+function getEmojiForRole(role) {
+  if (roleEmojis[role]) return roleEmojis[role];
+  // fallback: strip trailing digits (e.g., 平民1 -> 平民)
+  const base = role.replace(/\d+$/, '');
+  return roleEmojis[base] || '❓';
+}
 
 const roleCategories = {
   god: ['预言家', '女巫', '猎人', '骑士'],
-  wolf: ['狼王', '狼人', '狼兄', '狼弟'],
+  wolf: ['狼王', '狼人', '狼兄', '狼弟', '狼人1','狼人2','狼人3'],
   trader: ['黑市商人'],
-  civilian: ['平民'],
+  civilian: ['平民','平民1','平民2','平民3','平民4'],
 };
 
 const roleDetails = {
   basic: {
     title: '预言家 + 女巫 + 猎人 + 骑士 + 狼王',
     note: 'Balanced for a first session with clear roles and strong storytelling.',
-    defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '平民', '平民', '平民'],
+    // Explicit 12-player pool: 4 gods, 1 狼王, 3 numbered 狼人, 4 numbered 平民
+    defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人1', '狼人2', '狼人3', '平民1', '平民2', '平民3', '平民4'],
   },
   advanced: {
     title: '预言家 + 女巫 + 猎人 + 骑士 + 狼王 + 狼人',
@@ -119,15 +135,16 @@ function updateRolePreview() {
   Object.entries(roleCounts).forEach(([role, count]) => {
     const chip = document.createElement('div');
     chip.className = 'role-chip';
-    chip.innerHTML = `<span class="role-emoji">${roleEmojis[role]}</span> <span>${role} ×${count}</span>`;
+    chip.innerHTML = `<span class="role-emoji">${getEmojiForRole(role)}</span> <span>${role} ×${count}</span>`;
 
-    if (roleCategories.god.includes(role)) {
+    const base = role.replace(/\d+$/, '');
+    if (roleCategories.god.includes(base)) {
       columns.god.appendChild(chip);
-    } else if (roleCategories.wolf.includes(role)) {
+    } else if (roleCategories.wolf.includes(base)) {
       columns.wolf.appendChild(chip);
-    } else if (roleCategories.trader.includes(role)) {
+    } else if (roleCategories.trader.includes(base)) {
       columns.trader.appendChild(chip);
-    } else if (roleCategories.civilian.includes(role)) {
+    } else if (roleCategories.civilian.includes(base)) {
       columns.civilian.appendChild(chip);
     }
   });
@@ -143,7 +160,12 @@ function getDefaultRoles(roleKey, playerCount) {
   // clone template
   let pool = Array.isArray(detail.defaultRoles) ? detail.defaultRoles.slice() : [];
   // ensure length equals playerCount
-  while (pool.length < playerCount) pool.push('平民');
+  while (pool.length < playerCount) {
+    // generate numbered civilians to keep each as a unique selectable option
+    const civCount = pool.filter(r => /^平民(\d*)$/.test(r)).length;
+    const nextIdx = civCount + 1;
+    pool.push(`平民${nextIdx}`);
+  }
   if (pool.length > playerCount) pool = pool.slice(0, playerCount);
   return pool;
 }
@@ -210,7 +232,7 @@ function renderPlayerSetup() {
       }
       const opt = document.createElement('option');
       opt.value = r;
-      opt.text = `${roleEmojis[r]} ${r}`;
+      opt.text = `${getEmojiForRole(r)} ${r}`;
       select.appendChild(opt);
     });
     
@@ -289,7 +311,7 @@ function updateAllDropdowns() {
       if (allowed > 0 && selectedCountExcl >= allowed && currentValue !== r) return;
       const opt = document.createElement('option');
       opt.value = r;
-      opt.text = `${roleEmojis[r]} ${r}`;
+      opt.text = `${getEmojiForRole(r)} ${r}`;
       select.appendChild(opt);
     });
 
@@ -484,7 +506,7 @@ if (confirmTraderActionButton) {
     const targetNum = Number(traderTargetSelect.value);
     traderDiscoveredRole = playerRoleSelections[targetNum - 1];
     console.log(`Black Market Trader discovers Player ${targetNum} is: ${traderDiscoveredRole}`);
-    alert(`Trading complete! Player ${targetNum}'s role: ${roleEmojis[traderDiscoveredRole]} ${traderDiscoveredRole}`);
+    alert(`Trading complete! Player ${targetNum}'s role: ${getEmojiForRole(traderDiscoveredRole)} ${traderDiscoveredRole}`);
     showTraderCloseEyes();
   });
 }
