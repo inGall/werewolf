@@ -131,6 +131,26 @@ function updateRolePreview() {
   rolePreviewList.appendChild(columns.god);
   rolePreviewList.appendChild(columns.wolf);
   rolePreviewList.appendChild(columns.civilian);
+
+  // Dead column: show who died and reason
+  const deadCol = document.createElement('div');
+  deadCol.className = 'role-column dead-column';
+  const deadTitle = document.createElement('div');
+  deadTitle.className = 'column-title';
+  deadTitle.textContent = 'Dead';
+  deadCol.appendChild(deadTitle);
+
+  const deadNums = Array.from(deadPlayers).sort((a,b) => a - b);
+  deadNums.forEach(n => {
+    const role = playerRoleSelections[n - 1] || 'Unknown';
+    const reason = deadReasons[n] || 'died';
+    const chip = document.createElement('div');
+    chip.className = 'role-chip';
+    chip.innerHTML = `<span class="role-emoji">${getEmojiForRole(role)}</span> <span>Player ${n}: ${role} — ${reason}</span>`;
+    deadCol.appendChild(chip);
+  });
+
+  rolePreviewList.appendChild(deadCol);
 }
 
 function getDefaultRoles(roleKey, playerCount) {
@@ -442,7 +462,7 @@ function showWitchPhase() {
     // Update witch victim text if available
     const witchText = document.getElementById('witchNightVictimText');
     if (witchText) {
-      witchText.textContent = wolfKillTarget ? `昨晚玩家 ${wolfKillTarget} 被狼人袭击。` : '昨晚没有玩家被狼人袭击。';
+        witchText.textContent = wolfKillTarget ? '昨晚这个号码被狼人袭击。' : '昨晚没有玩家被狼人袭击。';
     }
     showSection('witchActionSection', ['wolfCloseEyesMessage']);
   }, 1500);
@@ -789,20 +809,20 @@ function showNightResults() {
   if (killed) {
     lines.push(`🐺 The wolves targeted <strong>Player ${killed}</strong>.`);
     if (roundSaveUsed) {
-      lines.push(`💚 女巫 used her save potion — Player ${killed} survived the night!`);
+      lines.push(`💚 The witch used her save potion — Player ${killed} survived the night!`);
     } else {
       lines.push(`💀 Player ${killed} was eliminated.`);
       died.push(killed);
-      diedReasons[killed] = '被狼人杀害';
+      diedReasons[killed] = 'killed by wolves';
     }
   } else {
     lines.push(`🐺 The wolves did not kill anyone.`);
   }
 
   if (nightPoisoned) {
-    lines.push(`☠️ 女巫 poisoned <strong>Player ${nightPoisoned}</strong> — Player ${nightPoisoned} was eliminated.`);
+    lines.push(`☠️ The witch poisoned <strong>Player ${nightPoisoned}</strong> — Player ${nightPoisoned} was eliminated.`);
     died.push(nightPoisoned);
-    diedReasons[nightPoisoned] = '被女巫毒死';
+    diedReasons[nightPoisoned] = 'poisoned by witch';
   }
 
   // Final summary
@@ -814,7 +834,7 @@ function showNightResults() {
 
   const resultDiv = document.getElementById('nightResultText');
   // Auto-mark night deaths with reasons
-  died.forEach(p => markDead(p, diedReasons[p] || '夜间死亡'));
+  died.forEach(p => markDead(p, diedReasons[p] || 'died during night'));
 
   if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
   showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
@@ -859,7 +879,7 @@ function renderDeadUI() {
         reasonEl.className = 'death-reason';
         card.appendChild(reasonEl);
       }
-      reasonEl.textContent = deadReasons[num] ? `原因：${deadReasons[num]}` : '死亡';
+        reasonEl.textContent = deadReasons[num] ? `Reason: ${deadReasons[num]}` : 'Dead';
     } else {
       card.classList.remove('dead');
       btn.textContent = '☠ Mark dead';
@@ -937,7 +957,7 @@ function triggerShoot(shooterNum, shooterRole, onDone) {
     const sel = grid.querySelector('.nominee-chip.selected');
     if (!sel) { alert('Select a player to shoot.'); return; }
     const target = Number(sel.dataset.player);
-    markDead(target, shooterRole === '猎人' ? '被猎人开枪' : '被特殊技能击杀');
+    markDead(target, shooterRole === '猎人' ? 'shot by hunter' : 'killed by special ability');
     showSection('dayDiscussionSection', ['shootSection']);
     if (!checkWinCondition()) {
       showSection('dayDiscussionSection', ['shootSection']);
@@ -993,7 +1013,7 @@ if (confirmVoteButton) {
     if (!sel) { alert('Select a player to vote out.'); return; }
     const target = Number(sel.dataset.player);
     const role = playerRoleSelections[target - 1];
-    markDead(target, '被投票出局');
+    markDead(target, 'voted out');
     if (checkWinCondition()) return;
     // Trigger special shoot ability if hunter or wolf king
     if (role === '猎人' || role === '狼王') {
