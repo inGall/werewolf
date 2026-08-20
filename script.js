@@ -41,22 +41,7 @@ const roleDetails = {
     note: 'Balanced for a first session with clear roles and strong storytelling.',
     // Explicit 12-player pool: 4 gods, 1 狼王, 3 numbered 狼人, 4 numbered 平民
     defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人1', '狼人2', '狼人3', '平民1', '平民2', '平民3', '平民4'],
-  },
-  advanced: {
-    title: '预言家 + 女巫 + 猎人 + 骑士 + 狼王 + 狼人',
-    note: 'Adds extra information and tactical depth for larger groups and longer rounds.',
-    defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '平民', '平民'],
-  },
-  chaos: {
-    title: '混乱夜晚',
-    note: 'A playful setup that makes every round feel unpredictable.',
-    defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人', '狼人', '平民'],
-  },
-  wolf_brothers: {
-    title: '狼兄狼弟 + 预言家 + 女巫 + 猎人 + 黑市商人',
-    note: 'Wolf Brothers can strategize together. Black Market Trader brings unpredictability to the game.',
-    defaultRoles: ['预言家', '女巫', '猎人', '黑市商人', '狼兄', '狼弟', '平民', '平民'],
-  },
+  }
 };
 
 let playerRoleSelections = [];
