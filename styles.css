@@ -402,6 +402,16 @@ h1 {
   line-height: 1.6;
 }
 
+.narrator-guide {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  border: 1px solid rgba(148,163,184,0.06);
+  font-size: 0.95rem;
+}
+
 .action-controls {
   display: flex;
   gap: 12px;
@@ -485,8 +495,11 @@ h1 {
 
 /* Dead player state */
 .player-card.dead {
-  opacity: 0.4;
+  opacity: 1;
   position: relative;
+  background: linear-gradient(90deg, rgba(248,113,113,0.06), rgba(139,92,246,0.02));
+  border: 1px solid rgba(248,113,113,0.35);
+  box-shadow: inset 0 0 0 3px rgba(248,113,113,0.04);
 }
 
 .player-card.dead .player-number::after {
@@ -495,6 +508,15 @@ h1 {
 
 .player-card.dead select {
   pointer-events: none;
+}
+
+.death-reason {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(248,113,113,0.06);
+  color: #fecaca;
+  font-weight: 600;
 }
 
 .dead-toggle-btn {

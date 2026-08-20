@@ -46,6 +46,7 @@ const roleDetails = {
 
 let playerRoleSelections = [];
 let deadPlayers = new Set(); // tracks dead player numbers (1-based)
+let deadReasons = {}; // map playerNum -> reason string
 let wolfKillTarget = null;
 let witchPoisonTarget = null;
 // Game-level potion state — persists across rounds, only reset on new game
@@ -82,17 +83,15 @@ function updateRolePreview() {
     roleCounts[role] = (roleCounts[role] || 0) + 1;
   });
 
-  // Create 4-column layout: god, wolf, trader, civilian
+  // Create 3-column layout: god, wolf, civilian
   const columns = {
     god: document.createElement('div'),
     wolf: document.createElement('div'),
-    trader: document.createElement('div'),
     civilian: document.createElement('div'),
   };
 
   columns.god.className = 'role-column god-column';
   columns.wolf.className = 'role-column wolf-column';
-  columns.trader.className = 'role-column trader-column';
   columns.civilian.className = 'role-column civilian-column';
 
   // Add title to each column
@@ -105,11 +104,6 @@ function updateRolePreview() {
   wolfTitle.className = 'column-title';
   wolfTitle.textContent = 'Wolf';
   columns.wolf.appendChild(wolfTitle);
-
-  const traderTitle = document.createElement('div');
-  traderTitle.className = 'column-title';
-  traderTitle.textContent = 'Trader';
-  columns.trader.appendChild(traderTitle);
 
   const civilianTitle = document.createElement('div');
   civilianTitle.className = 'column-title';
@@ -136,7 +130,6 @@ function updateRolePreview() {
 
   rolePreviewList.appendChild(columns.god);
   rolePreviewList.appendChild(columns.wolf);
-  rolePreviewList.appendChild(columns.trader);
   rolePreviewList.appendChild(columns.civilian);
 }
 
@@ -446,6 +439,11 @@ function showWitchPhase() {
   showSection('wolfCloseEyesMessage', ['wolfActionSection']);
   setTimeout(() => {
     updateWitchPotionUI();
+    // Update witch victim text if available
+    const witchText = document.getElementById('witchNightVictimText');
+    if (witchText) {
+      witchText.textContent = wolfKillTarget ? `昨晚玩家 ${wolfKillTarget} 被狼人袭击。` : '昨晚没有玩家被狼人袭击。';
+    }
     showSection('witchActionSection', ['wolfCloseEyesMessage']);
   }, 1500);
 }
@@ -786,6 +784,7 @@ function showNightResults() {
   const lines = [];
   const killed = wolfKillTarget;
   const died = []; // players who actually died
+  const diedReasons = {};
 
   if (killed) {
     lines.push(`🐺 The wolves targeted <strong>Player ${killed}</strong>.`);
@@ -794,6 +793,7 @@ function showNightResults() {
     } else {
       lines.push(`💀 Player ${killed} was eliminated.`);
       died.push(killed);
+      diedReasons[killed] = '被狼人杀害';
     }
   } else {
     lines.push(`🐺 The wolves did not kill anyone.`);
@@ -802,6 +802,7 @@ function showNightResults() {
   if (nightPoisoned) {
     lines.push(`☠️ 女巫 poisoned <strong>Player ${nightPoisoned}</strong> — Player ${nightPoisoned} was eliminated.`);
     died.push(nightPoisoned);
+    diedReasons[nightPoisoned] = '被女巫毒死';
   }
 
   // Final summary
@@ -812,8 +813,8 @@ function showNightResults() {
   }
 
   const resultDiv = document.getElementById('nightResultText');
-  // Auto-mark night deaths
-  died.forEach(p => markDead(p));
+  // Auto-mark night deaths with reasons
+  died.forEach(p => markDead(p, diedReasons[p] || '夜间死亡'));
 
   if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
   showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
@@ -821,12 +822,15 @@ function showNightResults() {
 
 // ─── Dead player tracking ─────────────────────────────────────────────────────
 function markDead(playerNum) {
+  const reason = arguments.length > 1 ? arguments[1] : '';
   deadPlayers.add(playerNum);
+  if (reason) deadReasons[playerNum] = reason;
   renderDeadUI();
 }
 
 function markAlive(playerNum) {
   deadPlayers.delete(playerNum);
+  delete deadReasons[playerNum];
   renderDeadUI();
 }
 
@@ -848,9 +852,19 @@ function renderDeadUI() {
     if (deadPlayers.has(num)) {
       card.classList.add('dead');
       btn.textContent = '✅ Mark alive';
+      // show reason
+      let reasonEl = card.querySelector('.death-reason');
+      if (!reasonEl) {
+        reasonEl = document.createElement('div');
+        reasonEl.className = 'death-reason';
+        card.appendChild(reasonEl);
+      }
+      reasonEl.textContent = deadReasons[num] ? `原因：${deadReasons[num]}` : '死亡';
     } else {
       card.classList.remove('dead');
       btn.textContent = '☠ Mark dead';
+      const reasonEl = card.querySelector('.death-reason');
+      if (reasonEl) reasonEl.remove();
     }
   });
 }
@@ -923,7 +937,7 @@ function triggerShoot(shooterNum, shooterRole, onDone) {
     const sel = grid.querySelector('.nominee-chip.selected');
     if (!sel) { alert('Select a player to shoot.'); return; }
     const target = Number(sel.dataset.player);
-    markDead(target);
+    markDead(target, shooterRole === '猎人' ? '被猎人开枪' : '被特殊技能击杀');
     showSection('dayDiscussionSection', ['shootSection']);
     if (!checkWinCondition()) {
       showSection('dayDiscussionSection', ['shootSection']);
@@ -979,7 +993,7 @@ if (confirmVoteButton) {
     if (!sel) { alert('Select a player to vote out.'); return; }
     const target = Number(sel.dataset.player);
     const role = playerRoleSelections[target - 1];
-    markDead(target);
+    markDead(target, '被投票出局');
     if (checkWinCondition()) return;
     // Trigger special shoot ability if hunter or wolf king
     if (role === '猎人' || role === '狼王') {
