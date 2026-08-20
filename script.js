@@ -139,8 +139,13 @@ function updateRolePreview() {
 }
 
 function getDefaultRoles(roleKey, playerCount) {
-  // Return empty array - players must select roles manually
-  return Array(playerCount).fill('');
+  const detail = roleDetails[roleKey] || roleDetails['basic'];
+  // clone template
+  let pool = Array.isArray(detail.defaultRoles) ? detail.defaultRoles.slice() : [];
+  // ensure length equals playerCount
+  while (pool.length < playerCount) pool.push('平民');
+  if (pool.length > playerCount) pool = pool.slice(0, playerCount);
+  return pool;
 }
 
 function renderPlayerSetup() {
@@ -154,12 +159,18 @@ function renderPlayerSetup() {
   rolePoolLabel.textContent = `${playerCount} players total`;
 
   const defaultRoles = getDefaultRoles(roleKey, playerCount);
+  // rolePool defines which roles are available for this mode (with multiplicity)
+  const rolePool = defaultRoles.slice();
   playerRoleSelections = Array(playerCount).fill('');
 
   playersList.innerHTML = '';
 
-  // Roles that can only be selected once
-  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王', '狼兄', '狼弟', '黑市商人']);
+  // compute allowed counts from rolePool
+  const allowedCounts = {};
+  rolePool.forEach(r => { allowedCounts[r] = (allowedCounts[r] || 0) + 1; });
+
+  // Roles that should be unique are those with allowed count === 1
+  const uniqueRoles = new Set(Object.keys(allowedCounts).filter(k => allowedCounts[k] === 1));
 
   defaultRoles.forEach((role, index) => {
     const card = document.createElement('div');
@@ -185,15 +196,18 @@ function renderPlayerSetup() {
     select.appendChild(emptyOpt);
     
     // Filter roles to prevent duplicates of unique roles
-    allRoles.forEach(r => {
-      // Check if this role is already selected by another player
-      const isAlreadySelected = playerRoleSelections.some((selectedRole, idx) => selectedRole === r && idx !== index);
-      
-      // Skip this role if it's a unique role that's already been selected
-      if (uniqueRoles.has(r) && isAlreadySelected) {
-        return; // Skip adding this option
+    // Build allowed roles list (unique roles from pool)
+    const allowedRoleList = Array.from(new Set(rolePool));
+    allowedRoleList.forEach(r => {
+      // Check how many of this role are already selected by others
+      const selectedByOthers = playerRoleSelections.some((selectedRole, idx) => selectedRole === r && idx !== index);
+      const selectedCount = playerRoleSelections.reduce((c, s, idx) => c + ((s === r && idx !== index) ? 1 : 0), 0);
+      const allowed = allowedCounts[r] || 0;
+      // If this role is limited and already filled by others, skip it
+      if (allowed > 0 && selectedCount >= allowed && !select.value) {
+        // skip adding option (unless current select already has it, handled later)
+        return;
       }
-      
       const opt = document.createElement('option');
       opt.value = r;
       opt.text = `${roleEmojis[r]} ${r}`;
@@ -202,7 +216,22 @@ function renderPlayerSetup() {
     
     select.addEventListener('change', (e) => {
       const playerIdx = Number(e.target.getAttribute('data-player-index'));
-      playerRoleSelections[playerIdx] = e.target.value;
+      const val = e.target.value;
+      // Tentatively set selection
+      playerRoleSelections[playerIdx] = val;
+      // Enforce allowed counts
+      if (val) {
+        const allowed = allowedCounts[val] || 0;
+        const selectedCount = playerRoleSelections.reduce((c, s) => c + (s === val ? 1 : 0), 0);
+        if (allowed > 0 && selectedCount > allowed) {
+          alert(`Only ${allowed} ${val} role(s) allowed in this setup.`);
+          playerRoleSelections[playerIdx] = '';
+          e.target.value = '';
+          updateRolePreview();
+          updateAllDropdowns();
+          return;
+        }
+      }
       updateRolePreview();
       updateAllDropdowns(); // Refresh all dropdowns to hide/show unavailable roles
       // Re-enable proceed button if all roles now filled
@@ -236,37 +265,34 @@ function renderPlayerSetup() {
 }
 
 function updateAllDropdowns() {
-  const uniqueRoles = new Set(['预言家', '女巫', '猎人', '骑士', '狼王', '狼兄', '狼弟', '黑市商人']);
+  // Determine role pool for current selected setup
+  const selectedCard = document.querySelector('.role-card.selected');
+  const roleKey = selectedCard?.dataset.role || 'basic';
+  const rolePool = getDefaultRoles(roleKey, playerRoleSelections.length);
+  const allowedCounts = {};
+  rolePool.forEach(r => { allowedCounts[r] = (allowedCounts[r] || 0) + 1; });
+
   const selects = document.querySelectorAll('.player-role-select');
-  
   selects.forEach(select => {
     const playerIdx = Number(select.getAttribute('data-player-index'));
     const currentValue = select.value;
-    
-    // Store current selection
-    const options = select.querySelectorAll('option');
-    
+
     // Remove all options except the empty one
-    options.forEach((opt, i) => {
-      if (i > 0) opt.remove(); // Keep the empty "Select a role..." option
-    });
-    
-    // Add options based on current selections
-    allRoles.forEach(r => {
-      // Check if this role is already selected by another player
-      const isAlreadySelected = playerRoleSelections.some((selectedRole, idx) => selectedRole === r && idx !== playerIdx);
-      
-      // Skip this role if it's a unique role that's already been selected
-      if (uniqueRoles.has(r) && isAlreadySelected) {
-        return;
-      }
-      
+    const options = select.querySelectorAll('option');
+    options.forEach((opt, i) => { if (i > 0) opt.remove(); });
+
+    const allowedRoleList = Array.from(new Set(rolePool));
+    allowedRoleList.forEach(r => {
+      const selectedCountExcl = playerRoleSelections.reduce((c, s, idx) => c + ((s === r && idx !== playerIdx) ? 1 : 0), 0);
+      const allowed = allowedCounts[r] || 0;
+      // Skip if filled up by others
+      if (allowed > 0 && selectedCountExcl >= allowed && currentValue !== r) return;
       const opt = document.createElement('option');
       opt.value = r;
       opt.text = `${roleEmojis[r]} ${r}`;
       select.appendChild(opt);
     });
-    
+
     // Restore current selection if still available
     select.value = currentValue;
   });
@@ -348,6 +374,8 @@ continueButton.addEventListener('click', () => {
   const detail = roleDetails[selectedCard.dataset.role];
   statusMessage.textContent = `Ready for ${detail.title}. Next step: assign players and start the night.`;
   setActiveStep(2);
+  // default to 12 players for standard gameplay
+  playerCountInput.value = 12;
   renderPlayerSetup();
 });
 
