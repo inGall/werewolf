@@ -121,6 +121,7 @@
               <div class="action-prompt">
                 <h3>🐺 Wolf team, who do you want to eliminate?</h3>
                 <p>Choose the player number you wish to target.</p>
+                <div class="narrator-guide">朗读提示：狼人请睁眼。请选择你们要击杀的玩家。</div>
               </div>
               <div class="action-controls">
                 <select id="wolfTargetSelect" class="action-select">
@@ -142,6 +143,7 @@
               <div class="action-prompt">
                 <h3>🧙🏻‍♀️ Witch, open your eyes</h3>
                 <p>Choose a potion to use (you can only use one per round).</p>
+                <div class="narrator-guide">朗读提示：女巫请睁眼。<span id="witchNightVictimText">昨晚玩家 ? 被袭击。</span> 你要使用解药拯救他吗？或者使用毒药毒杀其他玩家吗？</div>
               </div>
               <div class="action-controls">
                 <div class="potion-option">
@@ -180,6 +182,7 @@
               <div class="action-prompt">
                 <h3>🔮 预言家, open your eyes</h3>
                 <p>Choose a player to investigate. The narrator will show you 👍 (villager) or 👎 (wolf).</p>
+                <div class="narrator-guide">朗读提示：预言家请睁眼。请选择你要查验的玩家。查验后请说明他们是平民还是狼人。</div>
               </div>
               <div class="action-controls">
                 <select id="seerTargetSelect" class="action-select">
@@ -201,6 +204,7 @@
               <div class="action-prompt">
                 <h3>🔫 猎人, open your eyes</h3>
                 <p>猎人, no action is required this round.</p>
+                <div class="narrator-guide">朗读提示：猎人请睁眼。（仅第一晚）如果你是猎人，记录你的最终射击目标。</div>
               </div>
               <div class="action-controls">
                 <button id="confirmHunterActionButton" class="primary-button">Confirm</button>
@@ -261,6 +265,7 @@
               <div class="action-prompt">
                 <h3>♞ 骑士, open your eyes</h3>
                 <p>骑士, no action is required this round.</p>
+                <div class="narrator-guide">朗读提示：骑士请睁眼。（仅第一晚）如果有特殊指示，请执行。</div>
               </div>
               <div class="action-controls">
                 <button id="confirmKnightActionButton" class="primary-button">Confirm</button>
