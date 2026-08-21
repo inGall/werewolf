@@ -22,58 +22,65 @@ const roleEmojis = {
 };
 
 function getEmojiForRole(role) {
-  if (roleEmojis[role]) return roleEmojis[role];
-  // fallback: strip trailing digits (e.g., 平民1 -> 平民)
-  const base = role.replace(/\d+$/, '');
-  return roleEmojis[base] || '❓';
-}
+  const lines = [];
+  const killed = wolfKillTarget;
+  const resultDiv = document.getElementById('nightResultText');
 
-const roleCategories = {
-  god: ['预言家', '女巫', '猎人', '骑士'],
-  wolf: ['狼王', '狼人', '狼兄', '狼弟', '狼人1','狼人2','狼人3'],
-  trader: ['黑市商人'],
-  civilian: ['平民','平民1','平民2','平民3','平民4'],
-};
-
-const roleDetails = {
-  basic: {
-    title: '预言家 + 女巫 + 猎人 + 骑士 + 狼王',
-    note: 'Balanced for a first session with clear roles and strong storytelling.',
-    // Explicit 12-player pool: 4 gods, 1 狼王, 3 numbered 狼人, 4 numbered 平民
-    defaultRoles: ['预言家', '女巫', '猎人', '骑士', '狼王', '狼人1', '狼人2', '狼人3', '平民1', '平民2', '平民3', '平民4'],
+  // Wolves' kill happens first (may be saved by witch)
+  if (killed) {
+    lines.push(`🐺 The wolves targeted <strong>Player ${killed}</strong>.`);
+    if (roundSaveUsed) {
+      lines.push(`💚 The witch used her save potion — Player ${killed} survived the night!`);
+    } else {
+      lines.push(`💀 Player ${killed} was eliminated.`);
+      markDead(killed, 'killed by wolves');
+      // Check immediate win after wolf kill
+      if (checkWinCondition()) {
+        if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
+        return;
+      }
+    }
+  } else {
+    lines.push(`🐺 The wolves did not kill anyone.`);
   }
-};
 
-let playerRoleSelections = [];
-let deadPlayers = new Set(); // tracks dead player numbers (1-based)
-let deadReasons = {}; // map playerNum -> reason string
-let wolfKillTarget = null;
-let witchPoisonTarget = null;
-// Game-level potion state — persists across rounds, only reset on new game
-let witchHasSavePotion = true;
-let witchHasPoisonPotion = true;
+  // Witch poison happens after wolves' kill
+  if (nightPoisoned) {
+    lines.push(`☠️ The witch poisoned <strong>Player ${nightPoisoned}</strong> — Player ${nightPoisoned} was eliminated.`);
+    markDead(nightPoisoned, 'poisoned by witch');
+    // Check win after poison
+    if (checkWinCondition()) {
+      if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
+      return;
+    }
+  }
 
-// DOM Elements
-const roleCards = Array.from(document.querySelectorAll('.role-card'));
-const selectedRolesList = document.getElementById('selectedRolesList');
-const statusMessage = document.getElementById('statusMessage');
-const resetButton = document.getElementById('resetButton');
-const continueButton = document.getElementById('continueButton');
-const backButton = document.getElementById('backButton');
-const generateRosterButton = document.getElementById('generateRosterButton');
-const playerCountInput = document.getElementById('playerCount');
-const selectedSetupLabel = document.getElementById('selectedSetupLabel');
-const rolePoolLabel = document.getElementById('rolePoolLabel');
-const playersList = document.getElementById('playersList');
-const rolePreviewList = document.getElementById('rolePreviewList');
-const roleSelectionStep = document.getElementById('roleSelectionStep');
-const playerSetupStep = document.getElementById('playerSetupStep');
-const actionPhaseStep = document.getElementById('actionPhaseStep');
-const stepOnePill = document.getElementById('stepOnePill');
-const stepTwoPill = document.getElementById('stepTwoPill');
-const actionBackButton = document.getElementById('actionBackButton');
-const wolfTargetSelect = document.getElementById('wolfTargetSelect');
-const confirmWolfActionButton = document.getElementById('confirmWolfActionButton');
+  // After deaths applied, handle final-shot triggers (Hunter / Wolf King)
+  // Find any newly dead shooter who is eligible (died this night and not poisoned)
+  const newlyDead = Array.from(Object.keys(deadReasons)).map(n => Number(n));
+  const shooters = newlyDead.filter(p => {
+    const base = (playerRoleSelections[p - 1] || '').replace(/\d+$/, '');
+    return (base === '猎人' || base === '狼王') && deadReasons[p] !== 'poisoned by witch';
+  });
+
+  // If multiple shooters, process them sequentially
+  const processShooter = (idx) => {
+    if (idx >= shooters.length) {
+      if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
+      showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
+      return;
+    }
+    const p = shooters[idx];
+    const base = (playerRoleSelections[p - 1] || '').replace(/\d+$/, '');
+    triggerShoot(p, base, () => {
+      // After shoot, if lastShotTarget was set, the shot effect already marked the target dead
+      // Re-check win condition after each shot
+      if (checkWinCondition()) return;
+      processShooter(idx + 1);
+    });
+  };
+
+  processShooter(0);
 
 function updateRolePreview() {
   rolePreviewList.innerHTML = '';
@@ -928,23 +935,29 @@ function renderDeadUI() {
 
 // ─── Win condition ────────────────────────────────────────────────────────────
 function checkWinCondition() {
-  const wolfRoles = ['狼王', '狼人'];
   let aliveWolves = 0;
-  let aliveVillagers = 0;
+  let aliveGods = 0;
+  let aliveCivilians = 0;
+
   playerRoleSelections.forEach((role, idx) => {
     if (deadPlayers.has(idx + 1)) return;
-    if (wolfRoles.includes(role)) aliveWolves++;
-    else aliveVillagers++;
+    const base = (role || '').replace(/\d+$/, '');
+    if (roleCategories.wolf.includes(base)) aliveWolves++;
+    else if (roleCategories.god.includes(base)) aliveGods++;
+    else if (roleCategories.civilian.includes(base) || roleCategories.trader.includes(base)) aliveCivilians++;
+    else aliveCivilians++;
   });
 
   if (aliveWolves === 0) {
-    showWin('🎉 Villagers win!', `All wolves have been eliminated. The village is safe!<br>Alive wolves: 0 | Alive villagers: ${aliveVillagers}`);
+    showWin('🎉 Villagers win!', `All wolves have been eliminated. The village is safe!<br>Alive gods: ${aliveGods} | Alive civilians: ${aliveCivilians}`);
     return true;
   }
-  if (aliveWolves >= aliveVillagers) {
-    showWin('🐺 Wolves win!', `Wolves equal or outnumber the villagers. The village falls!<br>Alive wolves: ${aliveWolves} | Alive villagers: ${aliveVillagers}`);
+
+  if (aliveGods === 0 || aliveCivilians === 0) {
+    showWin('🐺 Wolves win!', `Wolves achieve victory — either all gods or all civilians are gone.<br>Alive wolves: ${aliveWolves} | Alive gods: ${aliveGods} | Alive civilians: ${aliveCivilians}`);
     return true;
   }
+
   return false;
 }
 
