@@ -589,6 +589,28 @@ if (proceedToActionPhaseButton) {
   });
 }
 
+// Auto-fill roles button for testing
+const autoFillRolesButton = document.getElementById('autoFillRolesButton');
+if (autoFillRolesButton) {
+  autoFillRolesButton.addEventListener('click', () => {
+    const selectedCard = document.querySelector('.role-card.selected');
+    const roleKey = selectedCard?.dataset.role || 'basic';
+    const playerCount = Number(playerCountInput.value) || playerRoleSelections.length || 12;
+    const pool = getDefaultRoles(roleKey, playerCount);
+    // assign pool in order to players
+    playerRoleSelections = pool.slice(0, playerCount);
+    // update selects
+    const selects = document.querySelectorAll('.player-role-select');
+    selects.forEach((sel, idx) => {
+      if (playerRoleSelections[idx]) sel.value = playerRoleSelections[idx];
+    });
+    updateRolePreview();
+    updateAllDropdowns();
+    const proceedBtn = document.getElementById('proceedToDayButton');
+    if (proceedBtn) proceedBtn.disabled = false;
+  });
+}
+
 // Witch potion selection handlers
 const witchSaveBtn = document.getElementById('witchSaveBtn');
 const witchPoisonBtn = document.getElementById('witchPoisonBtn');
@@ -715,6 +737,7 @@ if (confirmHunterActionButton) {
 let nightKilled = null;
 let nightPoisoned = null;  // captured at witch confirm time
 let roundSaveUsed = false; // per-round flag, reset each new night
+let lastShotTarget = null;
 
 // Knight confirm — just check roles on proceed click now
 const confirmKnightActionButton = document.getElementById('confirmKnightActionButton');
@@ -835,9 +858,23 @@ function showNightResults() {
   const resultDiv = document.getElementById('nightResultText');
   // Auto-mark night deaths with reasons
   died.forEach(p => markDead(p, diedReasons[p] || 'died during night'));
-
-  if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
-  showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
+  // If a hunter died (and was not poisoned), let them shoot before showing results
+  const hunterNight = died.find(p => playerRoleSelections[p - 1] === '猎人' && diedReasons[p] !== 'poisoned by witch');
+  if (hunterNight) {
+    // show hunter shoot UI, then show night results after
+    if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
+    triggerShoot(hunterNight, '猎人', () => {
+      // Append hunter shot info
+      if (lastShotTarget) {
+        const append = `<p style="margin:6px 0">🔫 Hunter (Player ${hunterNight}) shot Player ${lastShotTarget}.</p>`;
+        if (resultDiv) resultDiv.innerHTML += append;
+      }
+      showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
+    });
+  } else {
+    if (resultDiv) resultDiv.innerHTML = lines.map(l => `<p style="margin:6px 0">${l}</p>`).join('');
+    showSection('nightResultSection', ['sheriffResultSection','sheriffQuestionSection','wakeUpSection','sheriffNominationSection']);
+  }
 }
 
 // ─── Dead player tracking ─────────────────────────────────────────────────────
@@ -924,7 +961,9 @@ function triggerShoot(shooterNum, shooterRole, onDone) {
   const desc = document.getElementById('shootDesc');
   const grid = document.getElementById('shootPlayerGrid');
   if (title) title.textContent = shooterRole === '猎人' ? '🔫 猎人 — Final shot' : '👑 狼王 — Final shot';
-  if (desc) desc.textContent = `Player ${shooterNum} (${shooterRole}) was eliminated. They may shoot one player before dying.`;
+  if (desc) desc.textContent = shooterRole === '猎人'
+    ? `Player ${shooterNum} (${shooterRole}) was eliminated. 请发动你的角色技能，请问你要带走的对象是？ / Choose a player to take with you.`
+    : `Player ${shooterNum} (${shooterRole}) was eliminated. They may shoot one player before dying.`;
   if (grid) {
     grid.innerHTML = '';
     playerRoleSelections.forEach((_, idx) => {
@@ -957,6 +996,7 @@ function triggerShoot(shooterNum, shooterRole, onDone) {
     const sel = grid.querySelector('.nominee-chip.selected');
     if (!sel) { alert('Select a player to shoot.'); return; }
     const target = Number(sel.dataset.player);
+    lastShotTarget = target;
     markDead(target, shooterRole === '猎人' ? 'shot by hunter' : 'killed by special ability');
     showSection('dayDiscussionSection', ['shootSection']);
     if (!checkWinCondition()) {
