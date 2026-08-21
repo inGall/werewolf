@@ -1178,3 +1178,16 @@ renderSelection();
 updateStatus();
 setActiveStep(1);
 renderPlayerSetup();
+
+// Ensure continue button is interactive (fallback for overlay issues)
+if (continueButton) {
+  continueButton.disabled = false;
+  continueButton.style.pointerEvents = 'auto';
+  continueButton.style.zIndex = '999';
+  // If pointerdown occurs but click doesn't fire (overlay), forward it to click
+  continueButton.addEventListener('pointerdown', (e) => {
+    if (e.button === 0) {
+      continueButton.click();
+    }
+  });
+}
